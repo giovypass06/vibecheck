@@ -99,11 +99,6 @@ async function scambiaCodicePerToken(code) {
 
 // --- FASE 3: SCARICARE E MOSTRARE I DATI ---
 
-// --- FASE 3: SCARICARE E MOSTRARE I DATI ---
-
-// --- FASE 3: SCARICARE E MOSTRARE I DATI ---
-
-// Ora la funzione accetta un parametro "timeRange", di base impostato su 'short_term'
 async function ottieniStatistiche(timeRange = 'short_term') {
     const token = localStorage.getItem('access_token');
     if (!token) return;
@@ -115,10 +110,18 @@ async function ottieniStatistiche(timeRange = 'short_term') {
     document.getElementById('stats-container').innerHTML = '<p>Caricamento dati...</p>';
 
     try {
-        // Usiamo la variabile timeRange direttamente nel link della chiamata API
         const rispostaArtisti = await fetch(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=5`, {
             headers: { Authorization: `Bearer ${token}` }
         });
+
+        // IL NOSTRO SISTEMA SALVAVITA: Se Spotify ci dà errore 401 (Scaduto)
+        if (rispostaArtisti.status === 401) {
+            alert("Il tuo pass è scaduto (dura 1 ora). Fai di nuovo l'accesso!");
+            localStorage.removeItem('access_token'); // Cancelliamo il vecchio token
+            window.location.reload(); // Ricarichiamo la pagina per far riapparire il login
+            return; // Blocchiamo il resto del codice
+        }
+
         const datiArtisti = await rispostaArtisti.json();
 
         const rispostaCanzoni = await fetch(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=5`, {
