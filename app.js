@@ -99,37 +99,54 @@ async function scambiaCodicePerToken(code) {
 
 // --- FASE 3: SCARICARE E MOSTRARE I DATI ---
 
+// --- FASE 3: SCARICARE E MOSTRARE I DATI ---
+
 async function ottieniStatistiche() {
     const token = localStorage.getItem('access_token');
     if (!token) return;
 
     try {
-        const response = await fetch('https://api.spotify.com/v1/me/top/artists?time_range=short_term&limit=5', {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
+        // 1. Chiamata per gli ARTISTI
+        const rispostaArtisti = await fetch('https://api.spotify.com/v1/me/top/artists?time_range=short_term&limit=5', {
+            headers: { Authorization: `Bearer ${token}` }
         });
+        const datiArtisti = await rispostaArtisti.json();
 
-        const data = await response.json();
-        console.log("I tuoi dati di Spotify:", data);
-        mostraDatiSuSchermo(data.items);
+        // 2. Chiamata per le CANZONI (tracks)
+        const rispostaCanzoni = await fetch('https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=5', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const datiCanzoni = await rispostaCanzoni.json();
+
+        // Passiamo entrambi i gruppi di dati alla funzione che li stampa
+        mostraDatiSuSchermo(datiArtisti.items, datiCanzoni.items);
         
     } catch (error) {
         console.error("Errore nel recupero dei dati:", error);
     }
 }
 
-function mostraDatiSuSchermo(artisti) {
+// Funzione aggiornata per iniettare sia artisti che canzoni
+function mostraDatiSuSchermo(artisti, canzoni) {
     const container = document.getElementById('stats-container');
     
-    // Puliamo il contenitore prima di scriverci
-    container.innerHTML = '<h2>I tuoi artisti del momento:</h2>';
+    // Svuotiamo il contenitore
+    container.innerHTML = '';
     
+    // --- BLOCCO ARTISTI ---
+    container.innerHTML += '<h2>Top 5 Artisti:</h2>';
     if (artisti && artisti.length > 0) {
         artisti.forEach((artista, index) => {
             container.innerHTML += `<p>${index + 1}. ${artista.name}</p>`;
         });
-    } else {
-        container.innerHTML += `<p>Non hai ascoltato molta musica di recente!</p>`;
+    }
+    
+    // --- BLOCCO CANZONI ---
+    container.innerHTML += '<h2>Top 5 Canzoni:</h2>';
+    if (canzoni && canzoni.length > 0) {
+        canzoni.forEach((canzone, index) => {
+            // Per le canzoni stampiamo: "Nome Canzone - Nome Artista"
+            container.innerHTML += `<p>${index + 1}. ${canzone.name} - <em>${canzone.artists[0].name}</em></p>`;
+        });
     }
 }
