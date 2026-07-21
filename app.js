@@ -101,30 +101,53 @@ async function scambiaCodicePerToken(code) {
 
 // --- FASE 3: SCARICARE E MOSTRARE I DATI ---
 
-async function ottieniStatistiche() {
+// --- FASE 3: SCARICARE E MOSTRARE I DATI ---
+
+// Ora la funzione accetta un parametro "timeRange", di base impostato su 'short_term'
+async function ottieniStatistiche(timeRange = 'short_term') {
     const token = localStorage.getItem('access_token');
     if (!token) return;
 
+    // Mostriamo i bottoni dei filtri ora che abbiamo fatto il login
+    document.getElementById('filters-container').style.display = 'block';
+
+    // Puliamo il contenitore mettendoci una scritta di caricamento
+    document.getElementById('stats-container').innerHTML = '<p>Caricamento dati...</p>';
+
     try {
-        // 1. Chiamata per gli ARTISTI
-        const rispostaArtisti = await fetch('https://api.spotify.com/v1/me/top/artists?time_range=short_term&limit=5', {
+        // Usiamo la variabile timeRange direttamente nel link della chiamata API
+        const rispostaArtisti = await fetch(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=5`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         const datiArtisti = await rispostaArtisti.json();
 
-        // 2. Chiamata per le CANZONI (tracks)
-        const rispostaCanzoni = await fetch('https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=5', {
+        const rispostaCanzoni = await fetch(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=5`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         const datiCanzoni = await rispostaCanzoni.json();
 
-        // Passiamo entrambi i gruppi di dati alla funzione che li stampa
         mostraDatiSuSchermo(datiArtisti.items, datiCanzoni.items);
         
     } catch (error) {
         console.error("Errore nel recupero dei dati:", error);
+        document.getElementById('stats-container').innerHTML = '<p>Errore nel caricamento.</p>';
     }
 }
+
+// --- FASE 4: GESTIONE DEI BOTTONI FILTRO ---
+
+// Quando clicchi un bottone, rifà la chiamata API con il periodo corretto
+document.getElementById('btn-short').addEventListener('click', () => {
+    ottieniStatistiche('short_term');
+});
+
+document.getElementById('btn-medium').addEventListener('click', () => {
+    ottieniStatistiche('medium_term');
+});
+
+document.getElementById('btn-long').addEventListener('click', () => {
+    ottieniStatistiche('long_term');
+});
 
 // Funzione aggiornata per iniettare artisti e canzoni CON IMMAGINI
 function mostraDatiSuSchermo(artisti, canzoni) {
