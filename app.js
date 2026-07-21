@@ -149,45 +149,89 @@ document.getElementById('btn-long').addEventListener('click', () => {
     ottieniStatistiche('long_term');
 });
 
-// Funzione aggiornata per iniettare artisti e canzoni CON IMMAGINI
+
+// Funzione aggiornata per iniettare artisti e canzoni CON MENU A TENDINA
 function mostraDatiSuSchermo(artisti, canzoni) {
     const container = document.getElementById('stats-container');
-    
-    // Svuotiamo il contenitore
-    container.innerHTML = '';
+    container.innerHTML = ''; // Svuota il contenitore
     
     // --- BLOCCO ARTISTI ---
     container.innerHTML += '<h2>Top 5 Artisti:</h2>';
     if (artisti && artisti.length > 0) {
         artisti.forEach((artista, index) => {
-            // Peschiamo l'URL dell'immagine (se esiste)
             const immagineUrl = artista.images.length > 0 ? artista.images[0].url : '';
+            // Uniamo i generi con una virgola. Se non ci sono, mettiamo un testo di default.
+            const generi = artista.genres.length > 0 ? artista.genres.join(', ') : 'Nessun genere specifico';
+            const linkSpotify = artista.external_urls.spotify;
             
-            // Creiamo un div con immagine e nome
+            // Creiamo un ID unico per ogni tendina (es. dettaglio-artista-0, dettaglio-artista-1)
+            const idTendina = `dettaglio-artista-${index}`;
+            
             container.innerHTML += `
-                <div class="item-riga" style="display: flex; align-items: center; margin-bottom: 15px;">
-                    <img src="${immagineUrl}" width="60" height="60" style="border-radius: 50%; object-fit: cover; margin-right: 15px;">
-                    <p style="margin: 0;"><b>${index + 1}. ${artista.name}</b></p>
+                <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    <!-- RIGA PRINCIPALE (Cliccabile) -->
+                    <div style="display: flex; align-items: center; cursor: pointer;" onclick="apriChiudiDettagli('${idTendina}')">
+                        <img src="${immagineUrl}" width="60" height="60" style="border-radius: 50%; object-fit: cover; margin-right: 15px;">
+                        <p style="margin: 0; flex-grow: 1;"><b>${index + 1}. ${artista.name}</b></p>
+                        <span style="font-size: 12px; color: gray;">Espandi ▼</span>
+                    </div>
+                    
+                    <!-- MENU A TENDINA NASCOSTO -->
+                    <div id="${idTendina}" style="display: none; margin-top: 10px; margin-left: 75px;">
+                        <p style="margin: 5px 0; font-size: 14px; text-transform: capitalize;"><b>Generi:</b> ${generi}</p>
+                        <a href="${linkSpotify}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Apri Artista su Spotify ↗</a>
+                    </div>
                 </div>`;
         });
     }
     
     // --- BLOCCO CANZONI ---
-    container.innerHTML += '<h2>Top 5 Canzoni:</h2>';
+    container.innerHTML += '<h2 style="margin-top: 30px;">Top 5 Canzoni:</h2>';
     if (canzoni && canzoni.length > 0) {
         canzoni.forEach((canzone, index) => {
-            // Per le canzoni, l'immagine si trova dentro i dati dell'album
             const immagineUrl = canzone.album.images.length > 0 ? canzone.album.images[0].url : '';
+            const linkCanzone = canzone.external_urls.spotify;
+            const linkArtista = canzone.artists[0].external_urls.spotify;
             
-            // Creiamo un div con copertina album, titolo e artista
+            // La preview non è sempre disponibile per tutte le canzoni, facciamo un controllo
+            const playerAudio = canzone.preview_url 
+                ? `<audio controls src="${canzone.preview_url}" style="height: 35px; width: 100%; margin-top: 10px;"></audio>` 
+                : `<p style="font-size: 12px; color: gray; margin-top: 10px;">Preview audio non disponibile per questa traccia.</p>`;
+            
+            const idTendina = `dettaglio-canzone-${index}`;
+            
             container.innerHTML += `
-                <div class="item-riga" style="display: flex; align-items: center; margin-bottom: 15px;">
-                    <img src="${immagineUrl}" width="60" height="60" style="object-fit: cover; margin-right: 15px;">
-                    <div>
-                        <p style="margin: 0;"><b>${index + 1}. ${canzone.name}</b></p>
-                        <p style="margin: 0; font-size: 14px; color: gray;">${canzone.artists[0].name}</p>
+                <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    <!-- RIGA PRINCIPALE (Cliccabile) -->
+                    <div style="display: flex; align-items: center; cursor: pointer;" onclick="apriChiudiDettagli('${idTendina}')">
+                        <img src="${immagineUrl}" width="60" height="60" style="object-fit: cover; margin-right: 15px;">
+                        <div style="flex-grow: 1;">
+                            <p style="margin: 0;"><b>${index + 1}. ${canzone.name}</b></p>
+                            <p style="margin: 0; font-size: 14px; color: gray;">${canzone.artists[0].name}</p>
+                        </div>
+                        <span style="font-size: 12px; color: gray;">Espandi ▼</span>
+                    </div>
+                    
+                    <!-- MENU A TENDINA NASCOSTO -->
+                    <div id="${idTendina}" style="display: none; margin-top: 10px; margin-left: 75px;">
+                        <div style="display: flex; gap: 15px;">
+                            <a href="${linkCanzone}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Ascolta Brano ↗</a>
+                            <a href="${linkArtista}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Vai all'Artista ↗</a>
+                        </div>
+                        ${playerAudio}
                     </div>
                 </div>`;
         });
+    }
+}
+
+// Funzione che accende/spegne la visibilità della tendina
+function apriChiudiDettagli(idSezione) {
+    const sezione = document.getElementById(idSezione);
+    // Se è nascosta, la mostriamo (block). Se è visibile, la nascondiamo (none).
+    if (sezione.style.display === 'none') {
+        sezione.style.display = 'block';
+    } else {
+        sezione.style.display = 'none';
     }
 }
