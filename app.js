@@ -126,7 +126,7 @@ async function ottieniStatistiche() {
     }
 }
 
-// Funzione aggiornata per iniettare sia artisti che canzoni
+// Funzione aggiornata per iniettare artisti e canzoni CON IMMAGINI
 function mostraDatiSuSchermo(artisti, canzoni) {
     const container = document.getElementById('stats-container');
     
@@ -137,7 +137,15 @@ function mostraDatiSuSchermo(artisti, canzoni) {
     container.innerHTML += '<h2>Top 5 Artisti:</h2>';
     if (artisti && artisti.length > 0) {
         artisti.forEach((artista, index) => {
-            container.innerHTML += `<p>${index + 1}. ${artista.name}</p>`;
+            // Peschiamo l'URL dell'immagine (se esiste)
+            const immagineUrl = artista.images.length > 0 ? artista.images[0].url : '';
+            
+            // Creiamo un div con immagine e nome
+            container.innerHTML += `
+                <div class="item-riga" style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <img src="${immagineUrl}" width="60" height="60" style="border-radius: 50%; object-fit: cover; margin-right: 15px;">
+                    <p style="margin: 0;"><b>${index + 1}. ${artista.name}</b></p>
+                </div>`;
         });
     }
     
@@ -145,8 +153,18 @@ function mostraDatiSuSchermo(artisti, canzoni) {
     container.innerHTML += '<h2>Top 5 Canzoni:</h2>';
     if (canzoni && canzoni.length > 0) {
         canzoni.forEach((canzone, index) => {
-            // Per le canzoni stampiamo: "Nome Canzone - Nome Artista"
-            container.innerHTML += `<p>${index + 1}. ${canzone.name} - <em>${canzone.artists[0].name}</em></p>`;
+            // Per le canzoni, l'immagine si trova dentro i dati dell'album
+            const immagineUrl = canzone.album.images.length > 0 ? canzone.album.images[0].url : '';
+            
+            // Creiamo un div con copertina album, titolo e artista
+            container.innerHTML += `
+                <div class="item-riga" style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <img src="${immagineUrl}" width="60" height="60" style="object-fit: cover; margin-right: 15px;">
+                    <div>
+                        <p style="margin: 0;"><b>${index + 1}. ${canzone.name}</b></p>
+                        <p style="margin: 0; font-size: 14px; color: gray;">${canzone.artists[0].name}</p>
+                    </div>
+                </div>`;
         });
     }
 }
