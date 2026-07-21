@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Sfondo arrotondato in stile app moderna -->
+  <rect width="512" height="512" rx="110" fill="#121212"/>
+  
+  <!-- Lettera V stilizzata / Check di VibeCheck -->
+  <path d="M130 220 L220 310 L390 140" fill="none" stroke="#1DB954" stroke-width="45" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Barre dell'equalizzatore audio integrate in basso -->
+  <rect x="130" y="350" width="45" height="60" rx="10" fill="#FFFFFF"/>
+  <rect x="200" y="320" width="45" height="90" rx="10" fill="#1DB954"/>
+  <rect x="270" y="280" width="45" height="130" rx="10" fill="#FFFFFF"/>
+  <rect x="340" y="300" width="45" height="110" rx="10" fill="#1DB954"/>
+</svg>
