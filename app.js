@@ -95,6 +95,9 @@ async function scambiaCodicePerToken(code) {
             window.history.pushState({}, document.title, window.location.pathname);
             
             alert("Login completato con successo, fra! Token ottenuto.");
+
+            // Avviamo il download dei dati
+            ottieniStatistiche();
             
             // Prossimamente qui aggiungeremo la funzione per scaricare i dati
         } else {
@@ -103,4 +106,47 @@ async function scambiaCodicePerToken(code) {
     } catch (error) {
         console.error("Errore di rete:", error);
     }
+}
+
+// --- FASE 3: SCARICARE I DATI ---
+
+async function ottieniStatistiche() {
+    // 1. Recuperiamo il token salvato
+    const token = localStorage.getItem('access_token');
+    
+    // Se non c'è il token, ci fermiamo
+    if (!token) return;
+
+    try {
+        // 2. Facciamo la richiesta a Spotify per i tuoi artisti più ascoltati
+        // time_range=short_term significa "nelle ultime 4 settimane"
+        // limit=5 significa "voglio solo i primi 5"
+        const response = await fetch('https://api.spotify.com/v1/me/top/artists?time_range=short_term&limit=5', {
+            headers: {
+                Authorization: `Bearer ${token}` // Ecco come mostriamo il pass a Spotify
+            }
+        });
+
+        const data = await response.json();
+        
+        // 3. Stampiamo i risultati in console per vederli "grezzi"
+        console.log("I tuoi dati di Spotify:", data);
+
+        // 4. Mostriamo i nomi sulla pagina HTML
+        mostraDatiSuSchermo(data.items);
+        
+    } catch (error) {
+        console.error("Errore nel recupero dei dati:", error);
+    }
+}
+
+// Funzione per iniettare l'HTML nella pagina
+function mostraDatiSuSchermo(artisti) {
+    const container = document.getElementById('stats-container');
+    container.innerHTML = '<h2>I tuoi artisti del momento:</h2>';
+    
+    // Per ogni artista, creiamo un paragrafo col suo nome
+    artisti.forEach((artista, index) => {
+        container.innerHTML += `<p>${index + 1}. ${artista.name}</p>`;
+    });
 }
