@@ -99,7 +99,10 @@ async function ottieniStatistiche(timeRange = 'short_term') {
     if (statsContainer) statsContainer.innerHTML = '<p>Caricamento dati in corso...</p>';
 
     try {
-        const rispostaArtisti = await fetch(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=5`, {
+        // Aggiungiamo il proxy CORS davanti all'indirizzo di Spotify
+        const proxyUrl = 'https://corsproxy.io/?';
+
+        const rispostaArtisti = await fetch(proxyUrl + encodeURIComponent(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=5`), {
             headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -112,14 +115,13 @@ async function ottieniStatistiche(timeRange = 'short_term') {
 
         const datiArtisti = await rispostaArtisti.json();
 
-        const rispostaCanzoni = await fetch(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=5`, {
+        const rispostaCanzoni = await fetch(proxyUrl + encodeURIComponent(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=5`), {
             headers: { Authorization: `Bearer ${token}` }
         });
         const datiCanzoni = await rispostaCanzoni.json();
 
-        mostraDatiSuSchermo(datiArtisti.items, datiCanzoni.items);
-        
-    } catch (error) {
+        mostraDatiSuSchermo(datiArtisti.items, datiCanzoni.items);}
+        catch (error) {
         console.error("Errore API:", error);
         if (statsContainer) statsContainer.innerHTML = '<p style="color:red;">Errore nel caricamento. Controlla la console.</p>';
     }
