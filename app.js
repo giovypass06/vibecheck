@@ -1,4 +1,4 @@
-// 1. I tuoi dati (Ho aggiunto i nuovi permessi negli scopes!)
+// 1. I tuoi dati
 const clientId = 'ccbbf69fc0c642089bae531a517c5aa9'; 
 const redirectUri = 'https://giovypass06.github.io/vibecheck/'; 
 const scopes = 'user-top-read playlist-modify-public user-read-currently-playing user-read-private';
@@ -34,7 +34,8 @@ if (loginButton) {
             scope: scopes,
             redirect_uri: redirectUri,
             code_challenge_method: 'S256',
-            code_challenge: codeChallenge
+            code_challenge: codeChallenge,
+            show_dialog: 'true' // <-- Questo forza Spotify a chiederti di nuovo i permessi corretti per la playlist!
         });
 
         window.location = 'https://accounts.spotify.com/authorize?' + args.toString();
@@ -74,10 +75,14 @@ async function scambiaCodicePerToken(code) {
         if (data.access_token) {
             localStorage.setItem('access_token', data.access_token);
             window.history.pushState({}, document.title, window.location.pathname);
+            
+            // Il messaggio che volevi cambiare!
+            alert("Login done! 🎧"); 
+            
             ottieniStatistiche();
         }
     } catch (error) {
-        console.error("Errore di rete:", error);
+        console.error("Network Error:", error);
     }
 }
 
@@ -88,12 +93,11 @@ async function ottieniStatistiche(timeRange = 'short_term') {
 
     document.getElementById('filters-container').style.display = 'flex';
     document.getElementById('actions-container').style.display = 'flex';
-    document.getElementById('stats-container').innerHTML = '<p>Caricamento dati in corso...</p>';
+    document.getElementById('stats-container').innerHTML = '<p>Loading data in progress...</p>';
 
     try {
         const proxyUrl = 'https://corsproxy.io/?';
 
-        // Lanciamo le chiamate principali (Limite 50 come hai chiesto)
         const resArtisti = await fetch(proxyUrl + encodeURIComponent(`https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=50`), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -112,12 +116,10 @@ async function ottieniStatistiche(timeRange = 'short_term') {
         });
         const datiCanzoni = await resCanzoni.json();
 
-        // Salviamo gli URI delle canzoni globalmente per la funzione Playlist
         window.canzoniSalvatePerPlaylist = datiCanzoni.items.map(c => c.uri);
 
         mostraDatiSuSchermo(datiArtisti.items, datiCanzoni.items);
         
-        // Avviamo le nuove feature
         ottieniLiveStatus(token, proxyUrl);
         calcolaVibeScore(datiCanzoni.items, token, proxyUrl);
 
@@ -126,7 +128,7 @@ async function ottieniStatistiche(timeRange = 'short_term') {
     }
 }
 
-// --- FEATURE 1: LIVE STATUS ---
+// --- LIVE STATUS ---
 async function ottieniLiveStatus(token, proxyUrl) {
     try {
         const res = await fetch(proxyUrl + encodeURIComponent('https://api.spotify.com/v1/me/player/currently-playing'), {
@@ -137,7 +139,7 @@ async function ottieniLiveStatus(token, proxyUrl) {
             if (data && data.item) {
                 document.getElementById('live-status-container').innerHTML = `
                     <div style="background-color: #1DB954; color: black; padding: 10px; border-radius: 8px; margin-bottom: 25px; text-align: center; font-weight: bold;">
-                        🎧 Ora in ascolto: ${data.item.name} - ${data.item.artists[0].name}
+                        🎧 Now listening: ${data.item.name} - ${data.item.artists[0].name}
                     </div>`;
             }
         } else {
@@ -146,13 +148,10 @@ async function ottieniLiveStatus(token, proxyUrl) {
     } catch (e) { console.error("Errore Live Status:", e); }
 }
 
-// --- FEATURE 2: VIBE SCORE (Analisi Audio) ---
+// --- VIBE SCORE ---
 async function calcolaVibeScore(canzoni, token, proxyUrl) {
     if (!canzoni || canzoni.length === 0) return;
-    
-    // Prendiamo gli ID delle prime 20 canzoni per fare la media
     const ids = canzoni.slice(0, 20).map(c => c.id).join(',');
-    
     try {
         const res = await fetch(proxyUrl + encodeURIComponent(`https://api.spotify.com/v1/audio-features?ids=${ids}`), {
             headers: { Authorization: `Bearer ${token}` }
@@ -161,11 +160,9 @@ async function calcolaVibeScore(canzoni, token, proxyUrl) {
         
         if (data.audio_features) {
             let energia = 0, ballabilita = 0, acustica = 0, count = 0;
-            
             data.audio_features.forEach(f => {
                 if(f) { energia += f.energy; ballabilita += f.danceability; acustica += f.acousticness; count++; }
             });
-            
             if(count > 0) {
                 energia = Math.round((energia / count) * 100);
                 ballabilita = Math.round((ballabilita / count) * 100);
@@ -174,74 +171,84 @@ async function calcolaVibeScore(canzoni, token, proxyUrl) {
                 document.getElementById('vibe-score-container').innerHTML = `
                     <div style="border: 1px solid rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; margin-bottom: 25px; text-align: center;">
                         <h3 style="margin-top:0; color:#1DB954; font-size: 18px;">📊 Analisi del tuo Vibe</h3>
-                        <p style="margin:0; font-size: 14px;">⚡ Energia: <b>${energia}%</b> | 🕺 Ballabilità: <b>${ballabilita}%</b> | 🎸 Acustica: <b>${acustica}%</b></p>
+                        <p style="margin:0; font-size: 14px;">⚡ Energy: <b>${energia}%</b> | 🕺 Danceability: <b>${ballabilita}%</b> | 🎸 Acoustics: <b>${acustica}%</b></p>
                     </div>`;
             }
         }
-    } catch (e) { console.error("Errore Vibe Score:", e); }
+    } catch (e) { console.error("Error Vibe Score:", e); }
 }
 
-// --- FEATURE 3: CREA PLAYLIST ---
+// --- CREA PLAYLIST (Risolto proxy POST) ---
 const btnPlaylist = document.getElementById('btn-playlist');
 if (btnPlaylist) {
     btnPlaylist.addEventListener('click', async () => {
         const token = localStorage.getItem('access_token');
         if (!token || !window.canzoniSalvatePerPlaylist) return;
         
-        btnPlaylist.innerText = "Creazione...";
-        const proxyUrl = 'https://corsproxy.io/?';
+        btnPlaylist.innerText = "Creation in progress...";
 
         try {
-            // 1. Ottieni ID dell'utente
-            const meRes = await fetch(proxyUrl + encodeURIComponent('https://api.spotify.com/v1/me'), {
+            // Chiamata DIRETTA a Spotify (Senza proxy)
+            const meRes = await fetch('https://api.spotify.com/v1/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const meData = await meRes.json();
             const userId = meData.id;
 
-            // 2. Crea la Playlist vuota
-            const createRes = await fetch(proxyUrl + encodeURIComponent(`https://api.spotify.com/v1/users/${userId}/playlists`), {
+            const createRes = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: "VibeCheck Top 50 🎶", description: "Generata automaticamente da VibeCheck", public: true })
+                body: JSON.stringify({ name: "VibeCheck Top 50 🎶", description: "Automatic generation by VibeCheck", public: true })
             });
             const playlistData = await createRes.json();
 
-            // 3. Riempi la playlist con le canzoni
-            await fetch(proxyUrl + encodeURIComponent(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`), {
+            await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ uris: window.canzoniSalvatePerPlaylist })
             });
 
-            btnPlaylist.innerText = "✅ Playlist Creata!";
-            setTimeout(() => { btnPlaylist.innerText = "Genera Playlist"; }, 3000);
+            btnPlaylist.innerText = "✅ Playlist Created!";
+            setTimeout(() => { btnPlaylist.innerText = "Generate Playlist"; }, 3000);
         } catch (e) {
-            console.error("Errore Playlist:", e);
-            btnPlaylist.innerText = "❌ Errore";
+            console.error("Playlist Error:", e);
+            alert("There was a problem with the creation of the playlist. Check the console.");
+            btnPlaylist.innerText = "❌ Error";
         }
     });
 }
 
-// --- FEATURE 4: DOWNLOAD PER INSTAGRAM ---
+// --- DOWNLOAD PER INSTAGRAM (Ora solo Top 5!) ---
 const btnExport = document.getElementById('btn-export');
 if (btnExport) {
     btnExport.addEventListener('click', () => {
         const mainContainer = document.querySelector('.login-container');
         
-        // Nascondiamo temporaneamente i bottoni così non compaiono nella foto per Instagram
+        // 1. Nascondi bottoni
         document.getElementById('filters-container').style.display = 'none';
         document.getElementById('actions-container').style.display = 'none';
 
+        // 2. Nascondi tutti gli elementi con indice dal 5 in poi (che corrispondono al 6° posto in classifica)
+        const elementiClassifica = document.querySelectorAll('.stat-item');
+        elementiClassifica.forEach(el => {
+            if (parseInt(el.getAttribute('data-index')) >= 5) {
+                el.style.display = 'none';
+            }
+        });
+
+        // 3. Fai la "foto" della pagina accorciata
         html2canvas(mainContainer, { backgroundColor: "#121212", scale: 2 }).then(canvas => {
             const link = document.createElement('a');
             link.download = 'VibeCheck_Story.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
             
-            // Ripristiniamo i bottoni
+            // 4. Fai riapparire bottoni e l'intera classifica
             document.getElementById('filters-container').style.display = 'flex';
             document.getElementById('actions-container').style.display = 'flex';
+            elementiClassifica.forEach(el => {
+                el.style.display = 'block'; // Ripristina tutti i 50
+            });
         });
     });
 }
@@ -255,56 +262,57 @@ if (btnShort) btnShort.addEventListener('click', () => ottieniStatistiche('short
 if (btnMedium) btnMedium.addEventListener('click', () => ottieniStatistiche('medium_term'));
 if (btnLong) btnLong.addEventListener('click', () => ottieniStatistiche('long_term'));
 
-// --- STAMPA A SCHERMO (Dati) ---
+// --- STAMPA A SCHERMO ---
 function mostraDatiSuSchermo(artisti, canzoni) {
     const container = document.getElementById('stats-container');
     if (!container) return;
     container.innerHTML = ''; 
     
-    container.innerHTML += '<h2>Top Artisti:</h2>';
+    container.innerHTML += '<h2>Top Artists:</h2>';
     if (artisti && artisti.length > 0) {
         artisti.forEach((artista, index) => {
             const immagineUrl = artista.images && artista.images.length > 0 ? artista.images[0].url : '';
-            const generi = artista.genres && artista.genres.length > 0 ? artista.genres.join(', ') : 'Nessun genere specifico';
+            const generi = artista.genres && artista.genres.length > 0 ? artista.genres.join(', ') : 'No specific music gender';
             const linkSpotify = artista.external_urls ? artista.external_urls.spotify : '#';
-            const idTendina = `dettaglio-artista-${index}`;
+            const idTendina = `artist-detail-${index}`;
             
+            // Nota l'aggiunta di class="stat-item" e data-index
             container.innerHTML += `
-                <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                <div class="stat-item" data-index="${index}" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
                     <div style="display: flex; align-items: center; cursor: pointer;" onclick="apriChiudiDettagli('${idTendina}')">
                         <img src="${immagineUrl}" width="50" height="50" style="border-radius: 50%; object-fit: cover; margin-right: 15px;">
                         <p style="margin: 0; flex-grow: 1;"><b>${index + 1}. ${artista.name}</b></p>
-                        <span style="font-size: 12px; color: gray;">Espandi ▼</span>
+                        <span style="font-size: 12px; color: gray;">Expand ▼</span>
                     </div>
                     <div id="${idTendina}" style="display: none; margin-top: 10px; margin-left: 65px;">
-                        <p style="margin: 5px 0; font-size: 14px; text-transform: capitalize;"><b>Generi:</b> ${generi}</p>
-                        <a href="${linkSpotify}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Apri Artista ↗</a>
+                        <p style="margin: 5px 0; font-size: 14px; text-transform: capitalize;"><b>Genres:</b> ${generi}</p>
+                        <a href="${linkSpotify}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Open Artist ↗</a>
                     </div>
                 </div>`;
         });
     }
     
-    container.innerHTML += '<h2 style="margin-top: 30px;">Top Canzoni:</h2>';
+    container.innerHTML += '<h2 style="margin-top: 30px;">Top Songs:</h2>';
     if (canzoni && canzoni.length > 0) {
         canzoni.forEach((canzone, index) => {
             const immagineUrl = canzone.album && canzone.album.images.length > 0 ? canzone.album.images[0].url : '';
             const linkCanzone = canzone.external_urls ? canzone.external_urls.spotify : '#';
-            const nomeArtista = canzone.artists && canzone.artists.length > 0 ? canzone.artists[0].name : 'Artista sconosciuto';
+            const nomeArtista = canzone.artists && canzone.artists.length > 0 ? canzone.artists[0].name : 'Unknown artist';
+            const idTendina = `song-detail-${index}`;
             
-            const idTendina = `dettaglio-canzone-${index}`;
-            
+            // Stessa cosa qui: class="stat-item" e data-index
             container.innerHTML += `
-                <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                <div class="stat-item" data-index="${index}" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
                     <div style="display: flex; align-items: center; cursor: pointer;" onclick="apriChiudiDettagli('${idTendina}')">
                         <img src="${immagineUrl}" width="50" height="50" style="object-fit: cover; margin-right: 15px;">
                         <div style="flex-grow: 1;">
                             <p style="margin: 0;"><b>${index + 1}. ${canzone.name}</b></p>
                             <p style="margin: 0; font-size: 14px; color: gray;">${nomeArtista}</p>
                         </div>
-                        <span style="font-size: 12px; color: gray;">Espandi ▼</span>
+                        <span style="font-size: 12px; color: gray;">Expand ▼</span>
                     </div>
                     <div id="${idTendina}" style="display: none; margin-top: 10px; margin-left: 65px;">
-                        <a href="${linkCanzone}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Ascolta su Spotify ↗</a>
+                        <a href="${linkCanzone}" target="_blank" style="color: #1DB954; font-size: 14px; text-decoration: none; font-weight: bold;">Listen on Spotify ↗</a>
                     </div>
                 </div>`;
         });
