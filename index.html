@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -6,24 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VibeCheck - Le tue statistiche Spotify</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/svg+xml" href="iconaVibeCheck.svg">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <!-- Libreria per trasformare il codice in immagine per Instagram -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
-
     <div class="login-container">
         <h1>VibeCheck</h1>
-        <p>Why wait until December? Check your real-time Spotify stats today.</p>
-        
+        <p>Le tue statistiche musicali in tempo reale</p>
+
         <button id="login-btn">Accedi con Spotify</button>
-        
-        <!-- I bottoni per i filtri temporali -->
-        <div id="filters-container" style="display: none; margin-bottom: 20px;">
+
+        <!-- LIVE STATUS: Cosa stai ascoltando ora -->
+        <div id="live-status-container"></div>
+
+        <div id="filters-container" style="display: none;">
             <button id="btn-short">Ultime 4 Settimane</button>
             <button id="btn-medium">Ultimi 6 Mesi</button>
-            <button id="btn-long">Di Sempre</button>
+            <button id="btn-long">Sempre</button>
         </div>
-        
-        <!-- Il contenitore dove JS stamperà i dati -->
+
+        <!-- BOTTONI AZIONE: Playlist e Instagram -->
+        <div id="actions-container" style="display: none; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+            <button id="btn-playlist" style="background-color: #1DB954; color: black;">Genera Playlist</button>
+            <button id="btn-export" style="background-color: #ff007f; color: white;">Scarica per IG</button>
+        </div>
+
+        <!-- VIBE SCORE: L'analisi tecnica -->
+        <div id="vibe-score-container"></div>
+
+        <!-- CLASSIFICA: I tuoi top artisti e canzoni -->
         <div id="stats-container"></div>
     </div>
 
